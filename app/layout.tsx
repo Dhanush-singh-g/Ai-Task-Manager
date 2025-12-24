@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-
+//"In layout.tsx, we load Google Fonts using Geist and Geist_Mono.
+// We assign each font a CSS variable and load only the Latin characters for performance.
+// Then we define metadata like page title and description.
+// Next, we apply the font CSS variables in the body class so the fonts become global.
+// Finally, we use {children} to render any page inside this layout, so all pages inherit the same global HTML structure, fonts, and CSS."
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -24,8 +28,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      <body className={`${geistSans.variable} ${geistMono.variable} font-sans`}
       >
         {children}
       </body>

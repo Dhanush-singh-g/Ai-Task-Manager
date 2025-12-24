@@ -1,0 +1,24 @@
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Task {
+  id          Int        @id @default(autoincrement())
+  type        TaskType
+  description String
+  deadline    DateTime
+  completed   Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+}
+
+enum TaskType {
+  personal
+  academics
+  self_improvement
+}
