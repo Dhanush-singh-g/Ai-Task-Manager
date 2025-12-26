@@ -11,20 +11,29 @@ interface Task {
   isRemoving?: boolean;
 }
 
+type Filter = "all" | "pending" | "completed";
+
 export default function HomePage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [description, setDescription] = useState("");
   const [deadline, setDeadline] = useState("");
   const [type, setType] = useState<Task["type"]>("personal");
 
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<Filter>("all");
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+
   async function loadTasks() {
     const res = await fetch("/api/tasks");
     if (res.ok) setTasks(await res.json());
   }
 
+  useEffect(() => {
+    loadTasks();
+  }, []);
+
   async function addTask(e: React.FormEvent) {
     e.preventDefault();
-    if (!description || !deadline) return;
 
     const res = await fetch("/api/tasks", {
       method: "POST",
@@ -42,52 +51,64 @@ export default function HomePage() {
   }
 
   async function markDone(id: number) {
-    // Trigger animation
+    //animation for removing the task
     setTasks(prev =>
-      prev.map(task =>
-        task.id === id ? { ...task, isRemoving: true } : task
-      )
+      prev.map(t => (t.id === id ? { ...t, isRemoving: true } : t))
     );
-
+    //API call to mark task as completed
     await fetch(`/api/tasks/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ completed: true }),
     });
-
+    //removing the r=task frmo teh UI after animation
     setTimeout(() => {
-      setTasks(prev => prev.filter(task => task.id !== id));
+      setTasks(prev => prev.filter(t => t.id !== id));
     }, 300);
   }
 
-  useEffect(() => {
-    loadTasks();
-  }, []);
+  async function saveEdit() {
+    if (!editingTask) return;
 
-  function deadlineStatus(date: string) {
-    const today = new Date();
-    const d = new Date(date);
-    if (d < today) return "overdue";
-    if (d.toDateString() === today.toDateString()) return "today";
-    return "future";
+    await fetch(`/api/tasks/${editingTask.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        description: editingTask.description,
+        deadline: editingTask.deadline,
+        type: editingTask.type,
+      }),
+    });
+
+    setTasks(prev =>
+      prev.map(t => (t.id === editingTask.id ? editingTask : t))
+    );
+
+    setEditingTask(null);
   }
 
+  const filteredTasks = tasks.filter(t =>filter === "all"? true: filter === "completed"? t.completed: !t.completed)
+    .filter(t =>
+      t.description.toLowerCase().includes(search.toLowerCase())
+    );
+
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
+    <div className="min-h-screen bg-gray-100 p-6 text-black">
       <h1 className="text-3xl font-bold text-center mb-6">
-        Task Manager
+        AI Task Manager
       </h1>
 
-      {/* FORM */}
+      {/* ADD TASK */}
       <form
         onSubmit={addTask}
         className="bg-white p-4 rounded-lg shadow mb-6 grid grid-cols-1 md:grid-cols-4 gap-4"
       >
         <input
-          className="border rounded px-3 py-2"
           placeholder="Task description"
+          className="border rounded px-3 py-2"
           value={description}
           onChange={e => setDescription(e.target.value)}
+          required
         />
 
         <input
@@ -95,6 +116,7 @@ export default function HomePage() {
           className="border rounded px-3 py-2"
           value={deadline}
           onChange={e => setDeadline(e.target.value)}
+          required
         />
 
         <select
@@ -107,65 +129,138 @@ export default function HomePage() {
           <option value="self_improvement">Self Improvement</option>
         </select>
 
-        <button className="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700">
+        <button className="bg-blue-600 text-white rounded px-4 py-2">
           Add Task
         </button>
       </form>
 
-      {/* TASK CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {tasks.length === 0 && (
-          <p className="text-center text-gray-500 col-span-full">
-            No tasks yet. Add your first task.
-          </p>
-        )}
+      {/* SEARCH + FILTER */}
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <input
+          placeholder="Search tasks..."
+          className="border rounded px-4 py-2 w-full"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
 
-        {tasks.map(task => {
-          const status = deadlineStatus(task.deadline);
-
-          return (
-            <div
-              key={task.id}
-              className={`bg-white rounded-lg shadow p-4 transition-all duration-300
-                ${task.isRemoving ? "opacity-0 scale-95" : "opacity-100"}
-              `}
+        <div className="flex gap-2">
+          {["all", "pending", "completed"].map(f => (
+            <button
+              key={f}
+              onClick={() => setFilter(f as Filter)}
+              className={`px-4 py-2 rounded border ${
+                filter === f ? "bg-black text-white" : "bg-white"
+              }`}
             >
-              <h3 className="font-semibold text-lg mb-1">
-                {task.description}
-              </h3>
+              {f.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      </div>
 
-              <div className="text-sm text-gray-500 mb-3">
-                {task.type.replace("_", " ")} •{" "}
-                <span
-                  className={
-                    status === "overdue"
-                      ? "text-red-600"
-                      : status === "today"
-                      ? "text-orange-600"
-                      : "text-gray-600"
-                  }
-                >
-                  {new Date(task.deadline).toLocaleDateString()}
-                </span>
-              </div>
+      {/* TASK LIST */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredTasks.map(task => (
+          <div
+            key={task.id}
+            className={`bg-white p-4 rounded-lg shadow transition-all duration-300
+              ${task.isRemoving ? "opacity-0 translate-x-4" : ""}
+            `}
+          >
+            <h3 className="font-semibold text-lg mb-1">
+              {task.description}
+            </h3>
 
-              <div className="flex items-center justify-between">
-                <span className="px-2 py-1 text-xs rounded bg-yellow-100 text-yellow-800">
-                  Pending
-                </span>
+            <p className="text-sm mb-1">
+              Deadline: {new Date(task.deadline).toLocaleDateString()}
+            </p>
+
+            <p className="text-sm mb-3">
+              Type: {task.type.replace("_", " ")}
+            </p>
+
+            <div className="flex justify-between items-center">
+              <span className="text-xs border px-2 py-1 rounded">
+                {task.completed ? "Completed" : "Pending"}
+              </span>
+
+              <div className="flex gap-2">
+                {!task.completed && (
+                  <button
+                    onClick={() => markDone(task.id)}
+                    className="bg-green-600 text-white px-2 py-1 rounded text-xs"
+                  >
+                    Done
+                  </button>
+                )}
 
                 <button
-                  onClick={() => markDone(task.id)}
-                  disabled={task.isRemoving}
-                  className="text-sm bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 disabled:opacity-50"
+                  onClick={() => setEditingTask(task)}
+                  className="bg-gray-700 text-white px-2 py-1 rounded text-xs"
                 >
-                  Mark Done
+                  Edit
                 </button>
               </div>
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
+
+      {/* EDIT MODAL */}
+      {editingTask && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg w-96 text-black">
+            <h2 className="font-bold mb-4">Edit Task</h2>
+
+            <input
+              className="border w-full mb-2 px-3 py-2 rounded"
+              value={editingTask.description}
+              onChange={e =>
+                setEditingTask({ ...editingTask, description: e.target.value })
+              }
+            />
+
+            <input
+              type="date"
+              className="border w-full mb-2 px-3 py-2 rounded"
+              value={editingTask.deadline.slice(0, 10)}
+              onChange={e =>
+                setEditingTask({ ...editingTask, deadline: e.target.value })
+              }
+            />
+
+            <select
+              className="border w-full mb-4 px-3 py-2 rounded"
+              value={editingTask.type}
+              onChange={e =>
+                setEditingTask({
+                  ...editingTask,
+                  type: e.target.value as Task["type"],
+                })
+              }
+            >
+              <option value="personal">Personal</option>
+              <option value="academics">Academics</option>
+              <option value="self_improvement">Self Improvement</option>
+            </select>
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setEditingTask(null)}
+                className="border px-4 py-2 rounded"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveEdit}
+                className="bg-blue-600 text-white px-4 py-2 rounded"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

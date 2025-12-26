@@ -6,9 +6,6 @@ export async function GET() {
   try {
     const tasks = await prisma.task.findMany({
       //fetch only incomplete tasks
-      where:{
-        completed: false,
-      },
       orderBy: { createdAt: "desc" },
     });
 
