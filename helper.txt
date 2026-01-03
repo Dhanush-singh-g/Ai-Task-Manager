@@ -1,0 +1,27 @@
+
+npm install prisma --save-dev
+npm install @prisma/client
+npx prisma init
+
+
+
+TO be donee
+I can now:
+
+Add filters (All / Pending / Completed)
+
+Add search
+
+Add edit task modal
+
+Add dashboard stats
+
+Add dark mode
+
+Refactor into clean components
+===================================
+To deploy chcek the document in the desktop 
+
+
+
+

@@ -1,7 +1,7 @@
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-// GET all tasks for postgresql
+// GET all tasks from postgresql
 export async function GET() {
   try {
     const tasks = await prisma.task.findMany({
