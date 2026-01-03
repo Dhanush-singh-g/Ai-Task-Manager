@@ -67,7 +67,7 @@ export default function Home() {
         <div className="text-black flex flex-col items-center justify-center">
 
           <div className="p-6 rounded-lg shadow-md bg-gray-100 w-96 h-70">
-            <h3 className="font-bold text-center text-2xl">Register</h3>
+            <h3 className="font-bold text-center text-2xl">Register/Login</h3>
             <form onSubmit={Register} className="flex flex-col space-y-4" action="">
               <span>Email:</span>
               <input type="text"  value={email} onChange={(e)=>setEmail(e.target.value)} placeholder="Enter your email" className=""/>

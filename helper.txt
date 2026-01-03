@@ -20,7 +20,11 @@ Add dark mode
 
 Refactor into clean components
 ===================================
-To deploy chcek the document in the desktop 
+To deploy chcek the document in the desktop
+
+mongo Db is deployed in mongodb compass 
+postrgesql is deployed in neon 
+next js is deployed in vercel
 
 
 
